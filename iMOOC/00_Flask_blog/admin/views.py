@@ -57,12 +57,34 @@ def logout():
 def pwd():
     return render_template("admin/pwd.html")
 
-
+'''
 @admin.route("/tag/add/")
 @admin_login_req
 def tag_add():
     return render_template("admin/tag_add.html")
+'''
 
+@admin.route("/tag/add/", methods=["GET", "POST"])
+@admin_login_req
+def tag_add():
+    form = TagForm()
+    # 首先我们要导入当前使用的数据库Tag
+    if form.validate_on_submit():
+        data = form.data  # 用data获取数据，之后要判断
+        # tag应该具有唯一性。判断，如果已经有了，即可以查询到，那么提示小时，重定位到标签添加页面；否则，做入库操作
+        tag = Tag.query.filter_by(name=data['name']).count()
+        if tag == 1:
+            flash("标签名称已经存在！", "err")
+            return redirect(url_for('admin.tag_add'))
+        # 没查到，则入库。这里要导入db, from app import db
+        tag = Tag(
+            name=data["name"]
+        )
+        db.session.add(tag)  # 添加
+        db.session.commit()  # 提交
+        flash("添加标签成功！", "ok")  # 提交成功返回信息，flash(message, category='message')
+        redirect(url_for('admin.tag_add'))  # 成功后跳转页面到添加标签
+    return render_template("admin/tag_add.html", form=form)
 
 @admin.route("/tag/list/")
 @admin_login_req
