@@ -4,9 +4,10 @@
 # 从当前模块中导入
 from . import admin
 from flask import render_template, redirect, url_for, flash, session, request
-from app.admin.forms import LoginForm
-from app.models import Admin
+from app.admin.forms import LoginForm, TagForm
+from app.models import Admin, Tag
 from functools import wraps
+from app import db
 
 
 def admin_login_req(f):  # 定义一个函数和一个参数
@@ -15,7 +16,7 @@ def admin_login_req(f):  # 定义一个函数和一个参数
         # if not session.has_key("admin") or session["admin"] is None:  # 看看session中有无admin字段,可以看到33行有一个admin，或者是一个None
         if "admin" not in session:  # 看看session中有无admin字段,可以看到43行有一个admin，或者是一个None
             return redirect(url_for("admin.login", next=request.url))  # 如果session没有或者是None，我们要定义个限制，返回登录页面,
-                                                                       # TA获取的就是我们跳转的地址
+            # TA获取的就是我们跳转的地址
         return f(*args, **kwargs)  # return这个函数，装饰器的作用是给我们的函数继承的。
 
     return decorated_function
@@ -57,13 +58,8 @@ def logout():
 def pwd():
     return render_template("admin/pwd.html")
 
-'''
-@admin.route("/tag/add/")
-@admin_login_req
-def tag_add():
-    return render_template("admin/tag_add.html")
-'''
 
+# 添加标签
 @admin.route("/tag/add/", methods=["GET", "POST"])
 @admin_login_req
 def tag_add():
@@ -86,10 +82,20 @@ def tag_add():
         redirect(url_for('admin.tag_add'))  # 成功后跳转页面到添加标签
     return render_template("admin/tag_add.html", form=form)
 
-@admin.route("/tag/list/")
+
+# 标签列表
+# @admin.route("/tag/list/")
+@admin.route("/tag/list/<int:page>/", methods=["GET"])
 @admin_login_req
-def tag_list():
-    return render_template("admin/tag_list.html")
+# def tag_list():
+def tag_list(page=None):
+    if page is None:  # 传入的参数可能是空的。
+        page = 1
+    page_data = Tag.query.order_by(  # 查询，按时间升序排列
+        Tag.addtime.desc()
+    ).paginate(page=page, per_page=1)  # 定义page分页的情况用 paginate函数，其中2个参数：1是页数，2是每页显示数
+    # return render_template("admin/tag_list.html")
+    return render_template("admin/tag_list.html", page_data=page_data)  # 定义好以后，把page传入模板中
 
 
 @admin.route("/movie/add/")
